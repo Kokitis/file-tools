@@ -22,8 +22,8 @@ if os.name == 'nt': #Windows
 else:
 	histology_filename = "/home/upmc/Documents/Variant_Discovery_Pipeline/api_files/histology_diagnoses.txt"
 	gdc_location = "/home/upmc/Programs/gdc_data_transfer_tool"
-	local_file_api_filename = os.path.join(os.getcwd(), "api_files", "local_file_api.json") #Path to a local copy of the file api
-	local_case_api_filename = os.path.join(os.getcwd(), "api_files", "local_case_api.json") #Path to a local copy of the case api
+	local_file_api_filename = os.path.join("/home/upmc/Documents/Variant_Discovery_Pipeline/", "api_files", "local_file_api.json") #Path to a local copy of the file api
+	local_case_api_filename = os.path.join("/home/upmc/Documents/Variant_Discovery_Pipeline/", "api_files", "local_case_api.json") #Path to a local copy of the case api
 	gdc_program  = os.path.join(gdc_location, 'gdc-client-2016-10-19')
 #user_token = os.path.join(gdc_location, 'tokens', max(list(os.listdir(os.path.join(gdc_location, "tokens")))))
 def load_csv(filename):
@@ -567,7 +567,7 @@ def case_api (case_id):
 
 
 #Updated Version
-if False:
+if __name__ == "__main__" and False:
 	case_id  = "6969fe5a-5993-48e5-95c5-c5c7d3d08205"
 	#file_id  = "2d4f1ce4-4613-403a-90ec-fd6a551b6487"
 	file_id  = "0496553c-c68b-42a5-8a54-29f20b8f7c44"
@@ -596,7 +596,7 @@ elif False:
 	#filename = "G:\\Pipeline Files\\Combined Pipeline\\Full_STAD_sample_list.tsv"
 	filename = "C:\\Users\\Deitrickc\\Documents\\UPMC Files\\Projects\\Genome Instability Project\\Data\\Sample Lists\\Full_STAD_sample_list.tsv"
 	#api.generate_sample_list(all_stad_case_ids, filename = filename)
-elif True:
+elif False:
 	all_ids = """012e99fe-e3e8-4bb0-bb74-5b0c9992187c
 				44799c67-61cd-4f3e-bdbc-423e2e0fd2e8
 				8d3e3d09-bc61-4d5e-b8d6-5aee6cb488ae

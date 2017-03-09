@@ -1,6 +1,8 @@
 import os
-
+import csv
 import gdc_api
+
+
 
 def generate_file_md5(filename, blocksize=2**20):
     m = hashlib.md5()
@@ -35,50 +37,32 @@ def verify_file(filename, expected_md5sum, check_md5sum = True):
 	return response
 def _get_file_ids(filename):
 	""" Extracts file ids from the supplied file """
-	with open(full_list, 'r') as manifest_file:
+	with open(filename, 'r') as manifest_file:
 		reader = list(csv.DictReader(manifest_file, delimiter = '\t'))
-
-	if 'id' in manifest_file[0].keys():
+	if len(reader) == 0: return []
+	if 'id' in reader[0].keys():
 		id_columns = ['id']
 	else:
 		id_columns = ['SampleUUID', 'NormalUUID']
 
 	file_ids = list()
 	for row in reader:
-		file_ids += [f[col] for col in id_columns]
+		file_ids += [row[col] for col in id_columns]
 	return file_ids
 
-def _parse_sample_list(sample_list):
-	standard_list = list()
-	for row in sample_list:
-
-		normal = {
-			'id': basic_info['file_id'],
-			'filename': basic_info['file_name'],
-			'md5': "",
-			'size': "",
-			'state': "submitted",
-			'barcode': row['NormalID'],
-			'category': row['category'],
-			'experimental_strategy': "",
-			'patient': row['PatientID'],
-			'tissue': row['tissue'],
-			'verification': row['response']['status'],
-			'file_location': row['abs_filename'],
-		}
-
-def verify_files(reader, folders, computer):
+def verify_files(reader, folders, computer, check_md5sum = True):
+	API = gdc_api.GDCAPI()
 	files = list()
 	_num_valid_files = 0
 	_num_invalid_files = 0
 
 	print("Checking {0} files...".format(len(reader)))
 	for index, file_id in enumerate(reader):
-		file_info = gdc_api(file_id, 'files')
+		file_info = API(file_id, 'files')
 		basic_info = file_info['basic_info']
 		for folder in folders:
 			abs_filename = os.path.join(folder, file_id, basic_info['file_name'])
-			response = verify_file(abs_filename, row['md5'], check_md5sum)
+			response = verify_file(abs_filename, file_info['md5sum'], check_md5sum)
 			if response['status']: break
 		else:
 			abs_filename = ""
@@ -89,20 +73,20 @@ def verify_files(reader, folders, computer):
 			_num_invalid_files += 1
 			abs_filename = ""
 
-		print("({0}/{1})".format(index,len(reader)),response['status'],row['id'], abs_filename,flush = True)
+		print("({0}/{1})".format(index,len(reader)),response['status'],file_id, abs_filename,flush = True)
 
 		line = {
 			'file_id': file_id,
 			'case_id': basic_info['case_id'],
 			'file_name': basic_info['file_name'],
 			'computer': computer,
-			'md5': file_info['md5'],
+			'md5': file_info['md5sum'],
 			'file_size': basic_info['file_size'],
 			'barcode': basic_info['sample_barcode'],
 			'histology': basic_info['histology'],
-			'experimental_strategy': basic_info['experimental_strategy'],
+			'experimental_strategy': "",#basic_info['experimental_strategy'],
 			'patient_barcode': basic_info['patient_barcode'],
-			'tissue_type': basic_info['tissue_type'],
+			'tissue_type': basic_info['sample_type'],
 			'verification': response['status'],
 			'file_location': abs_filename,
 			'file_exists': response['file exists']
@@ -117,7 +101,7 @@ def export_manifest(files, filename):
 	for row in files:
 		line = {
 			'id': row['file_id'],
-			'case_id': row['case_id'],
+			#'case_id': row['case_id'],
 			'filename': row['file_name'],
 			'md5': row['md5'],
 			'size': row['file_size'],
@@ -131,10 +115,9 @@ def export_manifest(files, filename):
 			'verification': row['verification']
 		}
 		manifest.append(line)
-	fieldnames = ["id"	"filename",	"md5",	"size",	"state",	"barcode",	"category",	"computer",
-		"file_location",	"patient",	"sample type",	"verification"]
-	
-	with open(filename, 'r', newline = '') as file1:
+	fieldnames = ["id",	"filename",	"md5",	"size",	"state",	"barcode",	"category",	"computer",
+		"file_location",	"patient",	"tissue_type",	"verification"]
+	with open(filename, 'w', newline = '') as file1:
 		writer = csv.DictWriter(file1, delimiter = '\t', fieldnames = fieldnames)
 		writer.writeheader()
 		writer.writerows(manifest)
@@ -142,7 +125,7 @@ def export_manifest(files, filename):
 def export_sample_list(files, filename, computer):
 	pass
 
-def annotate_full_list(filename, folder, computer, check_md5sum = False, file_format = 'manifest'):
+def annotate_full_list(filename, folders, computer, check_md5sum = False, file_format = 'manifest'):
 	"""
 		full_list: string [Path]
 			The filename of a manifest file or sample list with all samples/files to search for.
@@ -152,18 +135,20 @@ def annotate_full_list(filename, folder, computer, check_md5sum = False, file_fo
 	"""
 	file_ids = _get_file_ids(filename)
 
-	verified_files = verify_files(reader, folders)
+	verified_files = verify_files(file_ids, folders, computer, check_md5sum)
 
 	if file_format == 'manifest':
-		export_manifest(verified_files, "")
+		output_filename = os.path.splitext(filename)[0] + '.manifest.tsv'
+		export_manifest(verified_files, output_filename)
 	else:
-		export_sample_list(verified_files, "")
+		output_filename = os.path.splitext(filename)[0] + '.sample_list.tsv'
+		export_sample_list(verified_files, output_filename)
 
 
-source_file = ""
-folders = ['']
-computer = ""
-annotate_full_list()
+source_file = "/media/upmc/Seagate_Backup_Plus_Drive/full_manifest.tsv"
+folders = ['/media/upmc/Seagate_Backup_Plus_Drive/Genome_Files/Verified/']
+computer = "DELL"
+annotate_full_list(source_file, folders, computer)
 
 
 
