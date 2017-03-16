@@ -10,7 +10,7 @@ def search_folder(folder, string):
 	if len(matches) == 0:
 		result = None
 	elif len(matches) > 1:
-		print("Found mutliple matching values: ", matches)
+		#print("Found mutliple matching values: ", matches)
 		result = matches
 	else:
 		result = matches
@@ -26,7 +26,7 @@ def get_folders(source_folder, patient_barcode):
 	varscan_folder = os.path.join(source_folder, patient_barcode, 'Varscan')
 	return muse_folder, mutect_folder, somaticsniper_folder, strelka_folder, varscan_folder
 
-def transferVariants(source_folder, destination_folder):
+def transferVariants(source_folder, destination_folder, DEBUG = False):
 	""" Transfers usable somatic vcf files from one folder to another.
 		Assumes the directory is structured as:
 			<patient barcode>/<caller name>/<variant files>
@@ -40,7 +40,8 @@ def transferVariants(source_folder, destination_folder):
 
 	patient_barcodes = [fn for fn in os.listdir(source_folder) if '-' in fn]
 
-	for patient_barcode in patient_barcodes:
+	for index, patient_barcode in enumerate(patient_barcodes):
+		print("{0} of {1}".format(index+1, len(patient_barcodes)))
 		muse_folder, mutect_folder, somaticsniper_folder, strelka_folder, varscan_folder = get_folders(source_folder, patient_barcode)
 		#muse_folder = os.path.join(source_folder, patient_barcode, 'MuSE')
 		#mutect_folder = os.path.join(source_folder, patient_barcode, 'MuTect2')
@@ -69,7 +70,7 @@ def transferVariants(source_folder, destination_folder):
 				#Hack for strelka directory structure
 				destination = destination.replace('results', 'Strelka')
 
-				print(source, "->", destination)
+				if DEBUG: print(source, "->", destination)
 				if not os.path.isdir(os.path.dirname(destination)): os.makedirs(os.path.dirname(destination))
 				shutil.copy(source, destination)
 
