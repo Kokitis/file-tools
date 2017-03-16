@@ -7,7 +7,10 @@ import shutil
 base_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/" #Base folder of the variant discovery pipeline
 
 def search_folder(folder, string):
-	matches = [fn for fn in os.listdir(folder) if string in fn]
+	if os.path.isdir(folder):
+		matches = [fn for fn in os.listdir(folder) if string in fn]
+	else:
+		matches = []
 	if len(matches) == 0:
 		result = None
 	elif len(matches) > 1:
@@ -57,7 +60,7 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 			'muse': search_folder(muse_folder, '.Muse.vcf'),
 			'mutect': search_folder(mutect_folder, '.mutect2.vcf'),
 			'somaticsniper': search_folder(somaticsniper_folder, ".somaticsniper.hq.vcf"),
-			'strelka_indel': search_folder(strelka_folder, ".passed.somatic.indels.vcf.strelka.vcf"),
+			'strelka-indel': search_folder(strelka_folder, ".passed.somatic.indels.vcf.strelka.vcf"),
 			'strelka-snv': search_folder(strelka_folder, ".passed.somatic.snvs.vcf.strelka.vcf"),
 			'varscan-indel': search_folder(varscan_folder, ".raw.indel.vcf"),
 			'varscan-snv': search_folder(varscan_folder, ".raw.snp.Somatic.hc.vcf")
@@ -78,7 +81,22 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 				if not os.path.isdir(os.path.dirname(destination)): os.makedirs(os.path.dirname(destination))
 				shutil.copy(source, destination)
 		results_status = {caller:v is not None for caller, v in results.items()}
+		num_successfull = sum(1 for i in results_status.values() if i)
+		isTrue = True in results_status.values()
+		isFalse = False in results_status.values()
+
+		if isTrue and not isFalse:
+			status = 'Complete'
+		elif is True and isFalse:
+			status = 'Partial'
+		elif not isTrue and isFalse:
+			status = 'Not Run'
+		else:
+			status = 'N/A'
+
 		results_status['PatientID'] = patient_barcode
+		results_status['Status'] = status
+
 		patient_results_table.append(results_status)
 
 
@@ -94,9 +112,4 @@ if __name__ == "__main__":
 	destination_folder = "G:\\test_folder\\"
 
 	transferVariants(source_folder, destination_folder)
-
-
-
-
-
 
