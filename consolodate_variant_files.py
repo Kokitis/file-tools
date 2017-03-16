@@ -1,3 +1,4 @@
+import csv
 import os
 import re
 import shutil
@@ -36,10 +37,13 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 				A folder containing variants for patients.
 			destination_folder: string [Folder Path]
 				The folder to move the files to.
+		Notes
+		-----
+			Writes a file named "caller_status.tsv" to the destination folder detailing which callers were missing files for each patient.
 	"""
 
 	patient_barcodes = [fn for fn in os.listdir(source_folder) if '-' in fn]
-
+	patient_results_table = list()
 	for index, patient_barcode in enumerate(patient_barcodes):
 		print("{0} of {1}".format(index+1, len(patient_barcodes)))
 		muse_folder, mutect_folder, somaticsniper_folder, strelka_folder, varscan_folder = get_folders(source_folder, patient_barcode)
@@ -73,6 +77,17 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 				if DEBUG: print(source, "->", destination)
 				if not os.path.isdir(os.path.dirname(destination)): os.makedirs(os.path.dirname(destination))
 				shutil.copy(source, destination)
+		results_status = {caller:v is not None for caller, v in results.items()}
+		results_status['PatientID'] = patient_barcode
+		patient_results_table.append(results_status)
+
+
+	filename = os.path.join(destination_folder, "caller_status.tsv")
+	with open(filename, 'w', newline = "") as file1:
+		writer = csv.DictWriter(file1, delimiter = '\t', fieldnames = sorted(patient_results_table[0].keys()))
+		writer.writeheader()
+		writer.writerows(patient_results_table)
+
 
 if __name__ == "__main__":
 	source_folder = "G:\\Genomic_Analysis\\1_input_vcfs\\"
