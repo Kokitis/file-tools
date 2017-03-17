@@ -5,7 +5,15 @@ import shutil
 """ Transers the output from each caller to a new folder. Gathers statistics on which callers have successfully been run for each case """
 
 base_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/" #Base folder of the variant discovery pipeline
+def getComputerName():
+	nameFile = "/home/upmc/Documents/computer_name.txt"
+	if os.path.isfile(nameFile):
+		with open(nameFile) as file1:
+			computer_name = file1.read().strip()
+	else:
+		computer_name = 'Unknown'
 
+	return computer_name
 def search_folder(folder, string):
 	if os.path.isdir(folder):
 		matches = [fn for fn in os.listdir(folder) if string in fn]
@@ -96,6 +104,7 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 
 		results_status['PatientID'] = patient_barcode
 		results_status['Status'] = status
+		results_status['ComputerName'] = getComputerName()
 
 		patient_results_table.append(results_status)
 
