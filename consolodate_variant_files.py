@@ -95,7 +95,7 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 
 		if isTrue and not isFalse:
 			status = 'Complete'
-		elif is True and isFalse:
+		elif isTrue and isFalse:
 			status = 'Partial'
 		elif not isTrue and isFalse:
 			status = 'Not Run'
@@ -117,8 +117,12 @@ def transferVariants(source_folder, destination_folder, DEBUG = False):
 
 
 if __name__ == "__main__":
-	source_folder = "G:\\Genomic_Analysis\\1_input_vcfs\\"
-	destination_folder = "G:\\test_folder\\"
+	if os.name == 'nt':
+		source_folder = "G:\\Genomic_Analysis\\1_input_vcfs\\"
+		destination_folder = "G:\\test_folder\\"
+	else:
+		source_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/3_called_variants/"
+		destination_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/3_called_variants_simple/"
 
 	transferVariants(source_folder, destination_folder)
 
