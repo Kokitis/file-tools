@@ -1,9 +1,7 @@
 import csv
 import hashlib
 import os
-if os.name == 'nt':
-	genome_folder = "C:\\Users\\Deitrickc\\Google Drive\\Genomics\\"
-else: genome_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/"
+genome_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/"
 import sys
 sys.path.append(genome_folder)
 
@@ -19,7 +17,10 @@ def getAvailableFolders(computer_name = None):
 			"/media/upmc/Seagate_Backup_Plus_Drive/Genome_Files/Verified/"
 		]
 	if computer_name == 'LMD' or computer_name is None:
-		pass
+		folder += [
+			"/media/upmc/LMD_Storage/Genome_Files/Verified/",
+			"/home/upmc/Downloads/Genome_Files/"
+		]
 
 	return folders
 
@@ -85,19 +86,6 @@ def verifyFileStatus(filename, expected_md5sum = None):
 	}
 	return response
 
-def verify(row, folder):
-	file_info = gdc_api.file_api(row['id'])
-	filename = os.path.join(folder, row['id'], row['filename'])
-
-	index_id = file_info['basic_info']['index_id']
-	index_name = file_info['basic_info']['index_name']
-	index_filename = os.path.join(folder, row['id'], index_name)
-	
-	main_response = verify_file(filename, file_info['basic_info']['md5sum'])
-	index_response= verify_file(index_filename, index_md5sum)
-
-	return main_response, index_response
-
 def writeManifestFile(rows, filename):
 	if len(rows) == 0: return None
 	basic_headers = ["id", "filename", "md5", "size", "state"]
@@ -109,7 +97,15 @@ def writeManifestFile(rows, filename):
 		writer.writeheader()
 		writer.writerows(files)
 
-def verifyManifest(input_manifest, output_manifest):
+def verifyFromManifest(input_manifest, output_manifest):
+	""" Verifies files listed in a amanifest file.
+		Parameters
+		----------
+			input_manifest: string [PATH]
+				The manifest file to read from.
+			output_manifest: string [PATH]
+				The manifest file to write the output to.
+	"""
 	with open(input_manifest, 'r') as inputmanifest:
 		rows = list(csv.DictReader(inputmanifest, delimiter = '\t'))
 
@@ -123,7 +119,6 @@ def verifyManifest(input_manifest, output_manifest):
 			if response['status']: break
 		else:
 			abs_filename = ""
-			#print("({0}/{1})".format(index,len(reader)),response['status'],row['id'], flush = True)
 
 		new_line = {
 			'id': row['id'],
@@ -133,15 +128,24 @@ def verifyManifest(input_manifest, output_manifest):
 			'state': row['state'],
 			'barcode': row['barcode'],
 			'category': row['category'],
-			'experimental_strategy': row['experimental_strategy'],
 			'patient': row['patient'],
 			'tissue': row['tissue'],
-			'verification': response['status']
+			'status': response['status'],
+			'md5status': response['md5 status'],
+			'file status': response['file status']
 		}
 		lines.append(new_line)
 	lines = sorted(lines, key = lambda s: s['barcode'])
 
 	writeManifestFile(lines, output_manifest)
 
+def verifyFileIntegrity(folder):
+	""" Verifies the status of all files within a folder, including the index.
+	"""
+
+	pass
+
 if __name__ == "__main__":
-	manifest_file = ""
+	input_manifest = "full_manifest.tsv"
+	output_manifest = "full_manifest.{0}.tsv".format(getComputerName())
+	verifyFromManifest(input_manifest, output_manifest)
