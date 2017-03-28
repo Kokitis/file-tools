@@ -17,7 +17,7 @@ def getAvailableFolders(computer_name = None):
 			"/media/upmc/Seagate_Backup_Plus_Drive/Genome_Files/Verified/"
 		]
 	if computer_name == 'LMD' or computer_name is None:
-		folder += [
+		folders += [
 			"/media/upmc/LMD_Storage/Genome_Files/Verified/",
 			"/home/upmc/Downloads/Genome_Files/"
 		]
@@ -73,7 +73,7 @@ def verifyFileStatus(filename, expected_md5sum = None):
 	if file_status and expected_md5sum is not None:
 		file_md5sum = generateFileMd5(filename)
 		md5sum_status = file_md5sum == expected_md5sum
-		status = file_exists and md5sum_status
+		status = file_status and md5sum_status
 	else: 
 		md5sum_status = None
 		status = file_status
@@ -92,12 +92,12 @@ def writeManifestFile(rows, filename):
 	other_headers = sorted(set(rows[0].keys()) - set(basic_headers))
 	headers = basic_headers + other_headers
 
-	with open('file_verification_status.tsv', 'w', newline = "") as file2:
+	with open(filename, 'w', newline = "") as file2:
 		writer = csv.DictWriter(file2, delimiter = '\t', fieldnames = headers)
 		writer.writeheader()
-		writer.writerows(files)
+		writer.writerows(rows)
 
-def verifyFromManifest(input_manifest, output_manifest):
+def verifyFromManifest(input_manifest, output_manifest, check_integrity = True):
 	""" Verifies files listed in a amanifest file.
 		Parameters
 		----------
@@ -106,36 +106,49 @@ def verifyFromManifest(input_manifest, output_manifest):
 			output_manifest: string [PATH]
 				The manifest file to write the output to.
 	"""
+	_current_computer = getComputerName()
 	with open(input_manifest, 'r') as inputmanifest:
 		rows = list(csv.DictReader(inputmanifest, delimiter = '\t'))
 
 	available_folders = getAvailableFolders()
 	lines = list()
 
-	for row in rows:
-		for folder in available_folder:
+	for index, row in enumerate(rows):
+		print("{0} of {1}: {2}".format(index+1, len(rows), row['id']))
+		for folder in available_folders:
 			abs_filename = os.path.join(folder, row['id'], row['filename'])
-			response = verifyFile(abs_filename, row['md5sum'])
+			if check_integrity:
+				md5sum = row['md5']
+			else:
+				md5sum = None
+			response = verifyFileStatus(abs_filename, md5sum)
 			if response['status']: break
 		else:
 			abs_filename = ""
 
+		if response['status']:
+			computer_name = _current_computer
+		else:
+			computer_name = ""
 		new_line = {
 			'id': row['id'],
 			'filename': row['filename'],
 			'md5': row['md5'],
 			'size': row['size'],
 			'state': row['state'],
-			'barcode': row['barcode'],
-			'category': row['category'],
-			'patient': row['patient'],
-			'tissue': row['tissue'],
+			'barcode': row.get('barcode'),
+			'category': row.get('category'),
+			'patient': row.get('patient'),
+			'tissueType': row.get('tissue type'),
 			'status': response['status'],
-			'md5status': response['md5 status'],
-			'file status': response['file status']
+			'md5Status': response['md5 status'],
+			'fileStatus': response['file status'],
+			'fileLocation': abs_filename,
+			'computer': computer_name
 		}
 		lines.append(new_line)
-	lines = sorted(lines, key = lambda s: s['barcode'])
+	if lines[0]['barcode'] is not None:
+		lines = sorted(lines, key = lambda s: s['barcode'])
 
 	writeManifestFile(lines, output_manifest)
 
@@ -147,5 +160,5 @@ def verifyFileIntegrity(folder):
 
 if __name__ == "__main__":
 	input_manifest = "full_manifest.tsv"
-	output_manifest = "full_manifest.{0}.tsv".format(getComputerName())
-	verifyFromManifest(input_manifest, output_manifest)
+	output_manifest = os.path.join(os.getcwd(), "full_manifest.{0}.tsv".format(getComputerName()))
+	verifyFromManifest(input_manifest, output_manifest, True)
