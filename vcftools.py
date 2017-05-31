@@ -1,10 +1,11 @@
 import os
 import vcf
+import shutil
 
 def copyVcf(source, destination):
 	with open(source, 'r') as input_file:
 		reader = vcf.Reader(input_file)
-		if 'varscan' in source:
+		if 'Varscan' in source:
 			reader.formats['DP4'] = reader.formats['DP4']._replace(num=4)
 			reader.formats['DP4'] = reader.formats['DP4']._replace(type='Integer')
 		with open(destination, 'w') as file1:
@@ -64,6 +65,43 @@ def splitVcf(filename, output_folder=None, template = None):
 
 	}
 	return result
+
+def fixRawCallerOutputs(sample, variants, output_folder, somaticseq_folder):
+	"""
+		Parameters
+	"""
+	if isinstance(sample, dict):
+		patient_id = sample['PatientID']
+	else:
+		patient_id = sample
+
+	modify_vjsd_script   = os.path.join(somaticseq_folder, "modify_VJSD.py")
+	modify_mutect_script = os.path.join(somaticseq_folder, "modify_Mutect.py")
+	
+	modified_variants = dict()
+	for caller, source in variants.items():
+		basename = "{}.{}.corrected.vcf".format(patient_id, caller)
+		destination = os.path.join(output_folder, basename)
+		if caller == 'varscan':
+			#modify VJSD . py −method VarScan2 − i n f i l e input . vcf −o u t f i l e output . vcf
+			command = """python3 {program} -method Varscan2 -infile {infile} -outfile {outfile}"""
+		elif caller == "somaticsniper":
+			command = """python3 {program} -method SomaticSniper -infile {infile} -outfile {outfile}"""
+		elif caller == "muse":
+			command = """python3 {program} -method MuSE -infile {infile} -outfile {outfile}"""
+		else:
+			command = None
+
+		if command:
+			command = command.format(
+				program = modify_vjsd_script,
+				infile = filename,
+				outfile = destination)
+		else:
+			shutil.copy2(source, destination)
+		modified_variants[caller] = destination
+
+	return modified_variants
 
 if __name__ == "__main__":
 	folder = ""
