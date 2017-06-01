@@ -1,6 +1,7 @@
 import os
 import vcf
 import shutil
+import re
 
 def copyVcf(source, destination):
 	with open(source, 'r') as input_file:
@@ -18,6 +19,7 @@ def copyVcf(source, destination):
 					except ValueError:
 						print(record)
 	return destination
+
 
 def splitVcf(filename, output_folder=None, template = None):
 	""" Separates a vcf file into indel and snp sections.
@@ -65,29 +67,59 @@ def splitVcf(filename, output_folder=None, template = None):
 
 	}
 	return result
+def splitCallset(callset, output_folder, **kwargs):
+	split_callset = dict()
+	for caller_name, source in callset.items():
+		if 'indel' in caller_name or 'snp' in caller_name:
+			destination = os.path.join(output_folder, os.path.basename(source))
+			copy2(source, destination)
+			split_callset[caller_name] = destination
+		else:
+			result = splitVcf(source, output_folder, **kwargs)
+			split_callset[caller_name + '-indel'] = result['indel']
+			split_callset[caller_name + '-snp']   = result['snp']
 
-def fixRawCallerOutputs(sample, variants, output_folder, somaticseq_folder):
+	return split_callset
+def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
 	"""
-		Parameters
+		Required Parameters
+		-------------------
+			variants: dict<str:str> [dict<caller_name: caller_output>]
+				The callset to fix
+			somaticseq_folder: str [path]
+				Th folder containing the somaticseq program.
+		Optional Parameters
+		-------------------
+			sample: dict<>
+			patientId: str
+
 	"""
-	if isinstance(sample, dict):
-		patient_id = sample['PatientID']
-	else:
-		patient_id = sample
+
 
 	modify_vjsd_script   = os.path.join(somaticseq_folder, "modify_VJSD.py")
 	modify_mutect_script = os.path.join(somaticseq_folder, "modify_Mutect.py")
 	
-	modified_variants = dict()
-	for caller, source in variants.items():
-		basename = "{}.{}.corrected.vcf".format(patient_id, caller)
+	fixed_callset = dict()
+	for caller, source in callset.items():
+		if 'output_folder' in kwargs:
+			output_folder = kwargs['output_folder']
+		else:
+			output_folder = os.path.dirname(source)
+
+		if 'patientId' in kwargs:
+			basename = "{}.{}.corrected.vcf".format(patient_id, caller)
+		else:
+			basename = os.path.basename(source)
+			basename, ext = os.path.basename(basename)
+			basename = "{}.corrected.vcf".format(basename)
+
 		destination = os.path.join(output_folder, basename)
-		if caller == 'varscan':
+		if 'varscan' in caller:
 			#modify VJSD . py −method VarScan2 − i n f i l e input . vcf −o u t f i l e output . vcf
 			command = """python3 {program} -method Varscan2 -infile {infile} -outfile {outfile}"""
-		elif caller == "somaticsniper":
+		elif 'somaticsniper' in caller:
 			command = """python3 {program} -method SomaticSniper -infile {infile} -outfile {outfile}"""
-		elif caller == "muse":
+		elif 'muse' in caller:
 			command = """python3 {program} -method MuSE -infile {infile} -outfile {outfile}"""
 		else:
 			command = None
@@ -95,13 +127,13 @@ def fixRawCallerOutputs(sample, variants, output_folder, somaticseq_folder):
 		if command:
 			command = command.format(
 				program = modify_vjsd_script,
-				infile = filename,
+				infile  = filename,
 				outfile = destination)
 		else:
 			shutil.copy2(source, destination)
-		modified_variants[caller] = destination
+		fixed_callset[caller] = destination
 
-	return modified_variants
+	return fixed_callset
 
 if __name__ == "__main__":
 	folder = ""
