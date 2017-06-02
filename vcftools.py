@@ -1,7 +1,15 @@
 import os
 import vcf
 import shutil
-import re
+import sys
+
+if os.name == 'nt':
+    GITHUB_FOLDER = os.path.join(os.getenv('USERPROFILE'), 'Documents', 'Github')
+else:
+    GITHUB_FOLDER = os.path.join(os.getenv('HOME'), 'Documents', 'Github')
+sys.path.append(GITHUB_FOLDER)
+
+import pytools.systemtools as systemtools
 
 def copyVcf(source, destination):
     with open(source, 'r') as input_file:
@@ -21,18 +29,16 @@ def copyVcf(source, destination):
     return destination
 
 
-def splitVcf(filename, output_folder=None, template = None):
+def splitVcf(filename, output_folder = None):
     """ Separates a vcf file into indel and snp sections.
         Parameters
         ----------
-            filename: path
+            filename: string [PATH]
                 THe vcf file to split.
             output_folder: path
                 The folder to save the output files to. If None,
                 the files will be saved to the folder the original file
                 resides.
-            output_template: string; default None
-                If provided, will be used as the basename for the output files.
 
         Returns
         -------
@@ -43,7 +49,8 @@ def splitVcf(filename, output_folder=None, template = None):
                     The snp file
     """
 
-    folder, basename = os.path.split(filename)
+    path, basename = os.path.split(filename)
+    if output_folder is None: output_folder = path
     basename = os.path.basename(basename)
     snp_filename = os.path.join(output_folder, basename + ".snp.vcf")
     indel_filename=os.path.join(output_folder, basename + ".indel.vcf")
@@ -72,10 +79,10 @@ def splitCallset(callset, output_folder, **kwargs):
     for caller_name, source in callset.items():
         if 'indel' in caller_name or 'snp' in caller_name:
             destination = os.path.join(output_folder, os.path.basename(source))
-            copy2(source, destination)
+            shutil.copy2(source, destination)
             split_callset[caller_name] = destination
         else:
-            result = splitVcf(source, output_folder, **kwargs)
+            result = splitVcf(source, output_folder)
             split_callset[caller_name + '-indel'] = result['indel']
             split_callset[caller_name + '-snp']   = result['snp']
 
@@ -97,7 +104,6 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
 
 
     modify_vjsd_script   = os.path.join(somaticseq_folder, "modify_VJSD.py")
-    modify_mutect_script = os.path.join(somaticseq_folder, "modify_Mutect.py")
     
     fixed_callset = dict()
     for caller, source in callset.items():
@@ -107,7 +113,7 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
             output_folder = os.path.dirname(source)
 
         if 'patientId' in kwargs:
-            basename = "{}.{}.corrected.vcf".format(patient_id, caller)
+            basename = "{}.{}.corrected.vcf".format(kwargs['patientId'], caller)
         else:
             basename = os.path.basename(source)
             basename, ext = os.path.basename(basename)
@@ -115,7 +121,6 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
 
         destination = os.path.join(output_folder, basename)
         if 'varscan' in caller:
-            #modify VJSD . py −method VarScan2 − i n f i l e input . vcf −o u t f i l e output . vcf
             command = """python3 {program} -method Varscan2 -infile {infile} -outfile {outfile}"""
         elif 'somaticsniper' in caller:
             command = """python3 {program} -method SomaticSniper -infile {infile} -outfile {outfile}"""
@@ -127,8 +132,9 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
         if command:
             command = command.format(
                 program = modify_vjsd_script,
-                infile  = filename,
+                infile  = source,
                 outfile = destination)
+            systemtools.Terminal(command)
         else:
             shutil.copy2(source, destination)
         fixed_callset[caller] = destination
@@ -136,6 +142,4 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
     return fixed_callset
 
 if __name__ == "__main__":
-    folder = ""
-
-    callset = Callset()
+    pass
