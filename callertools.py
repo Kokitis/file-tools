@@ -10,7 +10,7 @@ else:
 import sys
 sys.path.append(GITHUB_FOLDER)
 import pytools.filetools as filetools
-import vcftools
+
 
 def getOutputCaller(filename):
 	if   isMuseOutput( 			filename): result = 'muse'
