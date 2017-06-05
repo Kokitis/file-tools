@@ -116,7 +116,7 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
             basename = "{}.{}.corrected.vcf".format(kwargs['patientId'], caller)
         else:
             basename = os.path.basename(source)
-            basename, ext = os.path.basename(basename)
+            basename, ext = os.path.splitext(basename)
             basename = "{}.corrected.vcf".format(basename)
 
         destination = os.path.join(output_folder, basename)
