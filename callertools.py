@@ -184,7 +184,7 @@ class CallerClassifier:
 		}
 		varscan_regex = {
 			'varscan-indel0': "\.raw\.indel\..*\.?vcf$",
-			'varscan-snp0':   "\.raw\.snp\..*\.?vcf$"
+			'varscan-snp0':   "\.raw\.snp\.somatic\.hc\..*\.?vcf$"
 		}
 
 		regexes = {

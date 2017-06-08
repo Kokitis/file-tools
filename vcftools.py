@@ -2,6 +2,7 @@ import os
 import vcf
 import shutil
 import sys
+import re
 
 if os.name == 'nt':
 	GITHUB_FOLDER = os.path.join(os.getenv('USERPROFILE'), 'Documents', 'Github')
@@ -44,9 +45,10 @@ def splitVcfByChromosome(source, output_folder, create_subfolders = False):
 	"""
 	basename = os.path.basename(source)
 	basename, ext = os.path.splitext(basename)
+	_match_chroms = "chr[0-9MT]{1,3}$"
+	_match_chroms = re.compile(_match_chroms)
 
 	with open(source, 'r') as input_vcf_file:
-		print(source)
 		reader = vcf.Reader(input_vcf_file)
 		#pprint(reader.contigs)
 		chromosomes = {i:list() for i in reader.contigs}
@@ -58,7 +60,11 @@ def splitVcfByChromosome(source, output_folder, create_subfolders = False):
 			chromosomes[chrom].append(record)
 
 		for chromosome, record_list in chromosomes.items():
+			match = _match_chroms.search(chromosome)
+			if not match: continue
+			print(chromosome, match)
 			output_basename = "{}.{}.vcf".format(basename, chromosome)
+			print(output_basename)
 			if create_subfolders:
 				chromosome_folder = os.path.join(output_folder, chromosome)
 			else: 
@@ -74,7 +80,6 @@ def splitVcfByChromosome(source, output_folder, create_subfolders = False):
 						writer.write_record(record)
 
 
-
 def splitCallsetByChromosome(callset, output_folder):
 	""" Splits the files in a patients callset.
 
@@ -87,14 +92,13 @@ def splitCallsetByChromosome(callset, output_folder):
 				The folder to save the split files to.
 				Each chromosome will be saved to a separate sub-folder.
 	"""
+	filetools.checkDir(output_folder)
 
 	if isinstance(callset, str):
 		classifier = callertools.CallerClassifier()
 		callset = classifier(callset, key = 'original')
-	pprint(callset)
-	print(output_folder)
+
 	for caller, filename in callset.items():
-		print("splitting ", caller)
 		splitVcfByChromosome(filename, output_folder, create_subfolders = True)
 
 
@@ -181,7 +185,6 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
 
 	"""
 
-
 	modify_vjsd_script   = os.path.join(somaticseq_folder, "modify_VJSD.py")
 	
 	fixed_callset = dict()
@@ -213,7 +216,7 @@ def fixCallerOutputs(callset, somaticseq_folder, **kwargs):
 				program = modify_vjsd_script,
 				infile  = source,
 				outfile = destination)
-			systemtools.Terminal(command, show_output = True)
+			systemtools.Terminal(command, use_system = True)
 		else:
 			shutil.copy2(source, destination)
 		fixed_callset[caller] = destination
