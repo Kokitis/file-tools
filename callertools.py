@@ -74,9 +74,10 @@ class CallerClassifier:
 		}
 		varscan_regex = {
 			'varscan-indel0': "\.raw\.indel\..*\.?vcf$",
-			'varscan-snp0':   "\.raw\.snp\.somatic\.hc\..*\.?vcf$"
+			'varscan-snp0':   "\.raw\.snp\.somatic\.hc\..*\.?vcf$",
+			'varscan-snp1': ".varscan.snp.somatic.hc.vcf$"
 		}
-
+		# TCGA-2H-A9GF-CHR1-11A_vs_TCGA-2H-A9GF-CHR1-01A.varscan.snp.Somatic.hc
 		regexes = {
 			'muse': {k:re.compile(v) for k, v in muse_regex.items()},
 			'mutect2': {k:re.compile(v) for k, v in mutect_regex.items()},
