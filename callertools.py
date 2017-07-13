@@ -27,7 +27,8 @@ class CallerClassifier:
 				'type': {'indel', 'snp'}
 		"""
 		all_files = filetools.listAllFiles(folder, **kwargs)
-
+		#from pprint import pprint
+		#pprint(all_files)
 		results = dict()
 		for filename in all_files:
 			caller = self._classifyFilename(filename.lower())
@@ -78,8 +79,8 @@ class CallerClassifier:
 			'varscan-snp1': ".varscan.snp.somatic.hc.vcf$"
 		}
 		haplotypecaller_regex = {
-			'haplotypecaller-rna0': "haplotypecaller.RNA.filtered_variants.vcf$",
-			'haplotypecaller-dna0': "haplotypecaller.DNA.raw_variants.vcf$"
+			'haplotypecaller-rna0': "haplotypecaller.rna.filtered_variants.vcf$",
+			'haplotypecaller-dna0': "haplotypecaller.rna.raw_variants.vcf$"
 		}
 		# TCGA-2H-A9GF-CHR1-11A_vs_TCGA-2H-A9GF-CHR1-01A.varscan.snp.Somatic.hc
 		regexes = {
@@ -139,30 +140,32 @@ class GATKMergeSampleCallsets:
 			GATK
 			Reference Genome
 	"""
-	def __init__(self, merge_options, **kwargs):
+	def __init__(self, merge_options = None, **kwargs):
 		""" Parameters
 			----------
 				sample:
-				merge_options:
+				merge_options: the general options being used for the genomics pipeline.
 				output_folder:
 				variants:
 		"""
-		log_message = "GATKMergeSampleCallsets(merge_options = {})".format(merge_options)
-		print(log_message)
-		print('\tKeyword Arguements:')
-		for k, v in kwargs.items():
-			print("\t{}\t{}".format(k, v))
+		#log_message = "GATKMergeSampleCallsets(merge_options = {})".format(merge_options)
+		#print(log_message)
+		#print('\tKeyword Arguements:')
+		#for k, v in kwargs.items():
+		#	print("\t{}\t{}".format(k, v))
 
 		if merge_options is not None:
 			self.gatk_program = merge_options['Programs']['GATK']
 			self.reference = merge_options['Reference Files']['reference genome']
 		else:
-			self.gatk_program = kwargs.get('GATK')
+			self.gatk_program = kwargs.get('GATK', kwargs.get('program'))
 			self.reference = kwargs.get('reference')
 
 		if self.gatk_program is None or self.reference is None:
-			message = "GATK only runs on linux!"
-			raise OSError(message)
+			message = "Missing a dependancy: "
+			if self.gatk_program is None: message += ', GATK'
+			if self.reference is None: message += ', reference'
+			raise ValueError(message)
 
 	def __call__(self, callset, **kwargs):
 		""" Merges the provided callset
@@ -395,7 +398,7 @@ def merge(callset, filename, program, reference):
 
 
 _CLASSIFIER = CallerClassifier()
-_GATK_MERGE_CALLSET = GATKMergeSampleCallsets()
+
 if __name__ == "__main__":
 	#test_folder = "G:\\Data\\TCGA-ESCA\\raw_snp_output\\"
 	#test_folder = "/home/upmc/Documents/Variant_Discovery_Pipeline/3_called_variants/"

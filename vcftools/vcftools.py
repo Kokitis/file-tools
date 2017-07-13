@@ -131,6 +131,7 @@ def splitVcf(filename, output_folder = None):
 	indel_filename=os.path.join(output_folder, basename + ".indel.vcf")
 	
 	with open(filename, 'r') as vcf_file:
+		
 		reader          = vcf.Reader(vcf_file)
 
 		snp_writer      = vcf.Writer(open(snp_filename,   'w'), reader)
