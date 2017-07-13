@@ -14,6 +14,8 @@ import pytools.systemtools as systemtools
 import pytools.filetools as filetools
 import varianttools.callertools as callertools
 from pprint import pprint
+
+
 def copyVcf(source, destination):
 	with open(source, 'r') as input_file:
 		reader = vcf.Reader(input_file)
