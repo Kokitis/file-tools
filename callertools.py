@@ -67,7 +67,7 @@ class CallerClassifier:
 			'mutect20': "\.mutect2\..*\.?vcf$"
 		}
 		somaticsniper_regex = {
-			'somaticsniper0': "\.somaticsniper.*\.vcf$"
+			'somaticsniper0': "\.somaticsniper.*\.hq.vcf$"
 		}
 		strelka_regex = {
 			'strelka-indel0': "\.passed\.somatic\.indels\..*\.?vcf$",
